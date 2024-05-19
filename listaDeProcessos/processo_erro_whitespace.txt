@@ -1,0 +1,6 @@
+program processo_erro_whitespace.txt
+begin
+execute
+block  4
+execute
+end

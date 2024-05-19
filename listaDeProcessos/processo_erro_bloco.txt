@@ -1,0 +1,11 @@
+program processo_erro_bloco.txt
+begin
+execute
+block 6
+execute
+execute
+execute
+execute
+block
+execute
+end

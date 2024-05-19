@@ -1,0 +1,13 @@
+<program> ::= <program_statement> <program_body>
+
+<program_statement> ::= "program" <whitespace> <file_name> <EndOfLine>
+
+<program_body> ::= <begin_statement> <program_behaviour> <end_statement>
+<begin_statement> ::= "begin" <EndOfLine>
+<end_statement> ::= "end" <EndOfLine>
+
+<program_behaviour> ::= (<behaviour_statement>)+
+<behaviour_statement> ::= "execute" <EndOfLine> | "block" <whitespace> <block_period> <EndOfLine>
+
+<whitespace> ::= " "
+<block_period> ::= "1" | "2" | "3" | "4" | "5"

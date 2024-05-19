@@ -1,0 +1,17 @@
+program processo_1.txt
+begin
+execute
+block 4
+execute
+execute
+execute
+block 1
+block 1
+block 1
+block 1
+block 1
+block 1
+block 1
+block 1
+execute
+end

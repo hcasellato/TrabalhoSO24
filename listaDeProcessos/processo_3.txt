@@ -1,0 +1,20 @@
+program processo_3.txt
+begin
+execute
+execute
+execute
+execute
+execute
+execute
+execute
+execute
+execute
+execute
+block 5
+block 4
+block 3
+block 2
+execute
+execute
+execute
+end
