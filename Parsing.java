@@ -63,12 +63,13 @@ public class Parsing {
                         System.out.println("Error: block outside of begin/end block in " + fileName);
                         return null;
                     }
-                    String instruction = line.substring(6).trim();
-                    if (instruction.isEmpty()) {
-                        System.out.println("Error: Empty block instruction in " + fileName);
+                    // Verifica se a instrução "block" tem exatamente um espaço e um número válido
+                    String[] parts = line.split(" ");
+                    if (parts.length != 2 || !parts[1].matches("[1-5]")) {
+                        System.out.println("Error: Invalid block instruction in " + fileName + ": " + line);
                         return null;
                     }
-                    instructions.add("block " + instruction);
+                    instructions.add("block " + parts[1]);
                 } else if (!line.isEmpty()) {
                     System.out.println("Error: Invalid line in " + fileName + ": " + line);
                     return null;

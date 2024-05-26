@@ -29,9 +29,6 @@ import java.util.Queue;
  * and `NotificationInterface` abstractions, the class can be easily integrated with different short-term scheduler
  * implementations and notification mechanisms, depending on the requirements of the project.
  *
- * The `main()` method in the class provides a simple example of how to use the `LongTermScheduler` class, including the
- * creation of a short-term scheduler implementation and a notification interface.
- *
  * @author [Your Name]
  */
 
@@ -119,39 +116,5 @@ public class LongTermScheduler implements SubmissionInterface, Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        InterSchedulerInterface shortTermScheduler = new InterSchedulerInterface() {
-            @Override
-            public void addProcess(Process process) {
-                // Implementação de exemplo
-                System.out.println("Process added to short-term scheduler: " + process.getId());
-            }
-
-            @Override
-            public int getProcessLoad() {
-                // Implementação de exemplo
-                return 0;
-            }
-        };
-
-        NotificationInterface notifier = new ConsoleNotifier();
-        LongTermScheduler scheduler = new LongTermScheduler(shortTermScheduler, notifier);
-
-        String[] testFiles = {
-            "processo_1.txt",
-            "processo_2.txt",
-            "processo_erro_bloco.txt",
-            "processo_erro_execute.txt",
-            "processo_erro_whitespace.txt"
-        };
-
-        for (String fileName : testFiles) {
-            System.out.println("Testing file: " + fileName);
-            scheduler.submitJob(fileName);
-            System.out.println();
-        }
-
-        new Thread(scheduler).start();
-    }
 }
 
