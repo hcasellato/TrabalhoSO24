@@ -1,15 +1,5 @@
-program processo_1.txt
+program process1
 begin
-execute
-block 4
-execute
-execute
-execute
-execute
-execute
-execute
-execute
-execute
-block 2
-execute
+    execute instruction1
+    execute instruction2
 end
