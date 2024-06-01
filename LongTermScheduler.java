@@ -29,7 +29,7 @@ import java.util.Queue;
  * and `NotificationInterface` abstractions, the class can be easily integrated with different short-term scheduler
  * implementations and notification mechanisms, depending on the requirements of the project.
  *
- * @author [Your Name]
+ * @author Maria Vitória
  */
 
 public class LongTermScheduler implements SubmissionInterface, Runnable {
