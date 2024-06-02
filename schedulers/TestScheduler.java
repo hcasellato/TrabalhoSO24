@@ -1,3 +1,8 @@
+package schedulers;
+import interfaces.InterSchedulerInterface;
+import interfaces.NotificationInterface;
+import objects.Process;
+
 /**
  * The `TestScheduler` class is responsible for setting up and running integration tests for the `LongTermScheduler` and its
  * associated components.

@@ -1,3 +1,4 @@
+package interfaces;
 public interface ControlInterface{
     void startSimulation();
     void suspendSimulation();

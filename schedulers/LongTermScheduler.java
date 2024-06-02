@@ -1,5 +1,13 @@
+package schedulers;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import app.SchedulerSimulator;
+import interfaces.InterSchedulerInterface;
+import interfaces.NotificationInterface;
+import interfaces.SubmissionInterface;
+import objects.Process;
+import services.Parsing;
 
 /**
  * The `LongTermScheduler` class is a critical component of the project's scheduling system. It is responsible for managing the

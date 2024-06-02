@@ -1,3 +1,4 @@
+package objects;
 import java.util.List;
 /**
  * The `Process` class represents a single process in the system. It encapsulates the process identifier and the list of
