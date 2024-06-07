@@ -55,4 +55,9 @@ public class ProcessControlService {
         this.blockedQuantum--;
         return (this.blockedQuantum == 0);
     }
+
+    @Override
+    public String toString() {
+        return "Process{id='" + process.getId() + "}";
+    }
 }

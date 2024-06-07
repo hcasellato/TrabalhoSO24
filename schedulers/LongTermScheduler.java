@@ -61,6 +61,12 @@ public class LongTermScheduler implements SubmissionInterface, Runnable {
         this.running = true;
         this.parser = new Parsing();
     }
+
+    // Sets a new notifier
+    public void setNotifier(NotificationInterface notifier) {
+        this.notifier = notifier;
+    }
+
     /**
      * Submits a new job (process) to the long-term scheduler.
      *

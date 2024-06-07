@@ -3,8 +3,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import javax.naming.ldap.Control;
-
 import app.SchedulerSimulator;
 import interfaces.ControlInterface;
 import interfaces.InterSchedulerInterface;
@@ -17,12 +15,13 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
     private int processLoad; // Qnt de processos na fila
     private ProcessControlService runningProcess;
 
-    private boolean running; // flag para programa rodando 
+    private boolean running; // flag para programa rodando
+    private boolean suspended; // flag para simulação suspensa
 
     // Filas de prontos, bloqueados e terminados
-    private Queue<ProcessControlService> readyQueue1; // fila de quantum 2x
-    private Queue<ProcessControlService> readyQueue2; // fila de quantum 4x
-    private Queue<ProcessControlService> readyQueue3; // fila de FCFS
+    private Queue<ProcessControlService> readyQueue1; // fila de quantum 3x
+    private Queue<ProcessControlService> readyQueue2; // fila de quantum 6x
+    private Queue<ProcessControlService> readyQueue3; // fila de quantum 12x
     private Queue<ProcessControlService> finishedQueue;
     private ArrayList<ProcessControlService> blockedList;
 
@@ -32,40 +31,48 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
     {
         this.processLoad   = 0;
         this.running = true;
-        
+        this.suspended = false;
+
+        this.readyQueue1 = new LinkedList<>();
+        this.readyQueue2 = new LinkedList<>();
+        this.readyQueue3 = new LinkedList<>();
         this.finishedQueue = new LinkedList<>();
         this.blockedList = new ArrayList<ProcessControlService>();
 
         this.notifier = notifier;
-
     }
-    
+
+    public void setNotifier(NotificationInterface notifier) {
+        this.notifier = notifier;
+    }
 
     // Implementação de InterScheduler
-    public void addProcess(Process process)
+    public synchronized void addProcess(Process process)
     {
-        ProcessControlService treatedProcess = new ProcessControlService(process, 2, 0, 1);
+        ProcessControlService treatedProcess = new ProcessControlService(process, 3, 0, 1);
         readyQueue1.offer(treatedProcess); // Coloca processo na fila de prontos, já que foi processado e admitido
         processLoad++;
+        preemptIfNeeded();
     }
 
     @Override
-    public int getProcessLoad() {
+    public synchronized int getProcessLoad() {
         return processLoad;
     }
 
     private void esperaCronometrada()
     {
         try{
-            wait(SchedulerSimulator.CHECK_INTERVAL); // espera cronometrada
+            Thread.sleep(SchedulerSimulator.CHECK_INTERVAL); // espera cronometrada
         } catch(InterruptedException e) {
             e.printStackTrace();
         }
     }
-    
+
     // faz programa parar
-    public void stop() {
+    public synchronized void stop() {
         this.running = false;
+        notifyAll(); // Notifica todas as threads em espera
     }
 
     // RUN
@@ -73,43 +80,34 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
     public void run()
     {
         while(running){
+            synchronized (this) {
+                while (suspended) {
+                    try {
+                        wait(); // Aguarda até que a simulação seja retomada
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
             if(!readyQueue1.isEmpty())
             {
                 runningProcess = readyQueue1.peek(); // pega primeiro processo da fila
-                String instrucao = runningProcess.getProcess().getNextInstruction(); // capture instrução
-                
-                if(instrucao.equals("execute"))
-                {
-                    esperaCronometrada();  // executa
-                    runningProcess.tick(); // [I] passagem de tempo para processo 
-
-                    if(runningProcess.getRemainingQuantums() == 0)
-                    {
-                        // Atualização da queue com quantums faltantes (acho que dá pra otimizar)
-                        runningProcess.setQueue(2);
-                        runningProcess.setRemainingQuantums(4);
-
-                        readyQueue2.offer(readyQueue1.poll());
-                    }
-
-                } else if(instrucao.startsWith("block ")) {
-                    String[] parts = instrucao.split(" ");
-                    runningProcess.setBlockedQuantums(Integer.parseInt(parts[1]));
-
-                    blockedList.add(readyQueue1.poll()); // adiciona processo para blocked, tick vem automaticamente em [II]
-                } else { // processo terminou
-                    finishedQueue.offer(readyQueue1.poll()); // retira 1o processo de readyQueueX e o coloca em finalizado
-                }
+                executarProcesso(readyQueue1);
 
             }else if(!readyQueue2.isEmpty())
             {
+                runningProcess = readyQueue2.peek(); // pega primeiro processo da fila
+                executarProcesso(readyQueue2);
 
             }else if(!readyQueue3.isEmpty())
             {
+                runningProcess = readyQueue3.peek(); // pega primeiro processo da fila
+                executarProcesso(readyQueue3);
                 
             } else if(!blockedList.isEmpty()){
                 // ou seja, todas as filas de prontos estão vazias,
-                // mas a de bloquados não está, então precisa de uma espera cronometrada!
+                // mas a de bloqueados não está, então precisa de uma espera cronometrada!
                 esperaCronometrada();
 
             } else {
@@ -122,118 +120,129 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
         }
     }
 
+    private synchronized void executarProcesso(Queue<ProcessControlService> queue) {
+        String instrucao = runningProcess.getProcess().getNextInstruction(); // capture instrução
+        
+        if(instrucao == null) { // processo terminou
+            notifier.display("Process " + runningProcess.getProcess().getId() + " has finished execution");
+            finishedQueue.offer(queue.poll()); // retira 1o processo de readyQueueX e o coloca em finalizado
+            processLoad--;
+        } else if(instrucao.equals("execute"))
+        {
+            esperaCronometrada();  // executa
+            runningProcess.tick(); // [I] passagem de tempo para processo 
+
+            if(runningProcess.getRemainingQuantums() == 0)
+            {
+                // Rebaixa o processo para a fila de menor prioridade
+                int newQueue = runningProcess.getQueue() + 1;
+                int newQuantum = newQueue == 2 ? 6 : 12;
+
+                notifier.display("Process " + runningProcess.getProcess().getId() + " moved to queue " + newQueue);
+
+                runningProcess.setQueue(newQueue);
+                runningProcess.setRemainingQuantums(newQuantum);
+
+                if(newQueue == 2) {
+                    readyQueue2.offer(queue.poll());
+                } else {
+                    readyQueue3.offer(queue.poll());
+                }
+                preemptIfNeeded();
+            }
+
+        } else if(instrucao.startsWith("block ")) {
+            String[] parts = instrucao.split(" ");
+            runningProcess.setBlockedQuantums(Integer.parseInt(parts[1]));
+
+            notifier.display("Process " + runningProcess.getProcess().getId() + " is blocked for " + parts[1] + " quantums");
+
+            blockedList.add(queue.poll()); // adiciona processo para blocked
+            preemptIfNeeded();
+        }
+    }
+
+    private synchronized void preemptIfNeeded() {
+        // Preempção se um processo de maior prioridade chega enquanto outro de menor prioridade está rodando
+        if (runningProcess != null && !readyQueue1.isEmpty() && runningProcess.getQueue() > 1) {
+            notifier.display("Process " + runningProcess.getProcess().getId() + " is preempted by a higher priority process");
+            if (runningProcess.getQueue() == 2) {
+                readyQueue2.offer(runningProcess);
+            } else {
+                readyQueue3.offer(runningProcess);
+            }
+            runningProcess = readyQueue1.poll();
+        } else if (runningProcess != null && !readyQueue2.isEmpty() && runningProcess.getQueue() == 3) {
+            notifier.display("Process " + runningProcess.getProcess().getId() + " is preempted by a higher priority process");
+            readyQueue3.offer(runningProcess);
+            runningProcess = readyQueue2.poll();
+        }
+    }
+
     // Método para gerenciar onde vão os processos entre filas após bloqueio
-    private void queueManager()
+    private synchronized void queueManager()
     {
         // Verificar se tempo de bloqueio acabou
         if(!blockedList.isEmpty())
         {
+            ArrayList<ProcessControlService> readyProcesses = new ArrayList<>();
             for(ProcessControlService blockedProcess : blockedList)
             {
-                if(blockedProcess.tick()) // faz o tick e retorna 0 (ou seja, processo mudou de fila)
-                {
-                    switch (blockedProcess.getQueue()) { // verifica onde (fila) o processo está
-                        case 1:
-                            runningProcess.setQueue(2);
-                            runningProcess.setRemainingQuantums(4);
-                            readyQueue2.offer(blockedProcess);
-                            break;
-
-                        case 2:
-                            runningProcess.setQueue(3);
-                            runningProcess.setRemainingQuantums(Integer.MAX_VALUE);
-                            readyQueue3.offer(blockedProcess);
-                            break;
-                    }
-                }
-
                 if(blockedProcess.blockedTick()) // faz o blockedTick e retorna 0 (ou seja, processo acabou o bloqueio)
                 {
-                    switch (blockedProcess.getQueue()) { // verifica onde (fila) o processo está
-                        case 1:
-                            readyQueue1.offer(blockedProcess);
-                            break;
-
-                        case 2:
-                            readyQueue2.offer(blockedProcess);
-                            break;
-
-                        default:
-                            readyQueue3.offer(blockedProcess);
-                            break;
-                    }
+                    readyProcesses.add(blockedProcess);
                 }
-
             }
+            blockedList.removeAll(readyProcesses);
+            for(ProcessControlService readyProcess : readyProcesses) {
+                if(readyProcess.getQueue() == 3 && readyProcess.getBlockedQuantums() < readyProcess.getRemainingQuantums() / 2) {
+                    readyProcess.setQueue(2);
+                    readyProcess.setRemainingQuantums(6);
+                    notifier.display("Process " + readyProcess.getProcess().getId() + " is removed from blocked and moved to queue 2");
+                    readyQueue2.offer(readyProcess);
+                } else {
+                    notifier.display("Process " + readyProcess.getProcess().getId() + " is removed from blocked and moved to queue " + readyProcess.getQueue());
+                    readyQueue3.offer(readyProcess);
+                }
+            }
+            preemptIfNeeded();
         }
-        //blockedList.forEach((blocked) -> blocked.tick()); // para tds os bloquados, faça tick
-        
     }
 
-}
-
-
-
-
-
-/*
-    // RUN
+    // Implementação de ControlInterface
     @Override
-    public void run()
-    {
-        if(!readyQueue1.isEmpty()){
-            int runningQuantum = 0;
-            runningProcess = readyQueue1.poll();
-
-            if(runningProcess.hasMoreInstructions())
-            {
-                // Realiza execute ou block do processo em running
-                String instrucao = runningProcess.getNextInstruction(); // capture instrução
-                if(instrucao.equals("execute"))
-                {
-                    esperaCronometrada();
-                    runningQuantum++;
-
-                    if (!blockedList.isEmpty()){
-                        for (BlockControlService bs : blockedList){
-                            boolean hasFinished = bs.tick();
-                            if (hasFinished) {
-                                int queueToPut = bs.getQueue();
-                                switch(queueToPut) {
-                                    case 0:
-                                        readyQueue1.offer(bs.getProcess());
-                                        break;
-                                    case 1:
-                                        readyQueue2.offer(bs.getProcess());
-                                        break;
-                                    case 2:
-                                        readyQueue3.offer(bs.getProcess());
-                                        break;
-                                }
-                                blockedList.remove(bs);
-                            }
-                        }
-                    }
-                
-                    if (runningQuantum == quantum1) {
-                        readyQueue2.offer(runningProcess);
-                    }
-                }
-                else if(instrucao.startsWith("block "))
-                {
-                    int timeToBlock = Integer.parseInt(instrucao.strip().split(" ")[1]);
-                    if (runningQuantum < quantum1) {
-                        BlockControlService bs = new BlockControlService(runningProcess, timeToBlock, 0);
-                        blockedList.add(bs);
-                    }
-                    else {
-                        BlockControlService bs = new BlockControlService(runningProcess, timeToBlock, 1);
-                        blockedList.add(bs);
-                    }
-                }
-            } else { // ou seja, não há mais nenhuma instrução
-            }
-
-            }
+    public synchronized void startSimulation() {
+        if (!running) {
+            running = true;
+            new Thread(this).start();
+        } else {
+            notifyAll(); // Notifica todas as threads em espera
+        }
     }
-*/
+
+    @Override
+    public synchronized void suspendSimulation() {
+        suspended = true;
+    }
+
+    @Override
+    public synchronized void resumeSimulation() {
+        suspended = false;
+        notifyAll(); // Notifica todas as threads em espera
+    }
+
+    @Override
+    public void stopSimulation() {
+        stop();
+    }
+
+    @Override
+    public synchronized void displayProcessQueues() {
+        notifier.display("Processos em execução: " + (runningProcess != null ? runningProcess.getProcess().getId() : "Nenhum"));
+        notifier.display("Fila de prontos (prioridade 1): " + readyQueue1.toString());
+        notifier.display("Fila de prontos (prioridade 2): " + readyQueue2.toString());
+        notifier.display("Fila de prontos (prioridade 3): " + readyQueue3.toString());
+        notifier.display("Fila de bloqueados: " + blockedList.toString());
+        notifier.display("Fila de terminados: " + finishedQueue.toString());
+    }
+}
