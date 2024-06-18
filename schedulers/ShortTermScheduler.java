@@ -201,13 +201,10 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
             }
             blockedList.removeAll(readyProcesses);
             for(ProcessControlService readyProcess : readyProcesses) {
-                if(readyProcess.getQueue() == 3 && readyProcess.getBlockedQuantums() < readyProcess.getRemainingQuantums() / 2) {
-                    readyProcess.setQueue(2);
-                    readyProcess.setRemainingQuantums(6);
-                    notifier.display("Process " + readyProcess.getProcess().getId() + " is removed from blocked and moved to queue 2");
+                notifier.display("Process " + readyProcess.getProcess().getId() + " is removed from blocked and moved to queue " + readyProcess.getQueue());
+                if(readyProcess.getQueue() == 2) {
                     readyQueue2.offer(readyProcess);
                 } else {
-                    notifier.display("Process " + readyProcess.getProcess().getId() + " is removed from blocked and moved to queue " + readyProcess.getQueue());
                     readyQueue3.offer(readyProcess);
                 }
             }
