@@ -112,7 +112,7 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
 
             } else {
                 // por fim, todas as listas (prontos e bloqueados) estão vazias
-                running = false;
+                runningProcess = null; // Atualiza que não existe mais processo rodando
                 handleEmptyQueues();
             }
 
