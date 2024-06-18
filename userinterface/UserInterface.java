@@ -105,14 +105,18 @@ public class UserInterface extends JFrame implements NotificationInterface, Runn
             }
         });
 
+
+
         programPanel.add(new JLabel("Program Path:"));
         programPanel.add(programInput);
         programPanel.add(submitButton);
+        
 
         controlPanel.add(programPanel);
 
         add(controlPanel, BorderLayout.SOUTH);
     }
+
 
     @Override
     public void display(String info) {

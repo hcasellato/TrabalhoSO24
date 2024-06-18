@@ -113,11 +113,17 @@ public class ShortTermScheduler implements InterSchedulerInterface, ControlInter
             } else {
                 // por fim, todas as listas (prontos e bloqueados) estão vazias
                 running = false;
+                handleEmptyQueues();
             }
 
             queueManager(); // [II] passagem de tempo para outros processos (concordando com [I])
                             // direcionamento de bloqueados para fila de prontos
         }
+    }
+
+    private void handleEmptyQueues() {
+        notifier.display("Todas as filas estão vazias");
+        running = false;
     }
 
     private synchronized void executarProcesso(Queue<ProcessControlService> queue) {
