@@ -6,7 +6,7 @@ package interfaces;
  * <p>This interface is implemented by the `LongTermScheduler` class and provides methods for submitting a new job
  * from a file and displaying the submission queue.
  *
- * @author [Your Name]
+ * @author Maria Vitoria
  */
 public interface SubmissionInterface {
     /**
