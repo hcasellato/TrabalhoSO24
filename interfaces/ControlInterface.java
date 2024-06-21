@@ -6,7 +6,7 @@ package interfaces;
  * <p>This interface is implemented by the `ShortTermScheduler` class and provides methods for starting,
  * suspending, resuming, stopping the simulation, and displaying the process queues.
  *
- * @author [Your Name]
+ * @author Maria Vitoria
  */
 public interface ControlInterface {
     /**
