@@ -8,7 +8,7 @@ import objects.Process;
  * <p>This interface is implemented by the `ShortTermScheduler` class and provides methods for adding a new process
  * to the system and getting the current process load.
  *
- * @author [Your Name]
+ * @author Maria Vitoria
  */
 public interface InterSchedulerInterface {
     /**
