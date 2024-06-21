@@ -6,7 +6,7 @@ package interfaces;
  * <p>This interface is implemented by classes that provide a mechanism for displaying messages or notifications,
  * such as the `ConsoleNotifier` and `UserInterface` classes.
  *
- * @author [Your Name]
+ * @author Maria Vitoria
  */
 public interface NotificationInterface {
     /**
